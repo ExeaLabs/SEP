@@ -1,0 +1,51 @@
+# ── Python ────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# ── Virtual environments ─────────────────────────────────────────
+.env
+.venv/
+venv/
+ENV/
+
+# ── Distribution / packaging ─────────────────────────────────────
+*.egg-info/
+*.egg
+dist/
+build/
+eggs/
+*.whl
+
+# ── Data & model artefacts ───────────────────────────────────────
+data/
+outputs/
+checkpoints/
+predictions/
+evaluation/
+wandb/
+
+# ── Model weights ────────────────────────────────────────────────
+*.pth
+*.pt
+*.ckpt
+*.safetensors
+
+# ── Jupyter ──────────────────────────────────────────────────────
+.ipynb_checkpoints/
+
+# ── IDE / editor ─────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ── OS ───────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Logs ─────────────────────────────────────────────────────────
+*.log
+logs/
