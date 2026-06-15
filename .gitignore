@@ -18,8 +18,10 @@ build/
 eggs/
 *.whl
 
-# ── Data & model artefacts ───────────────────────────────────────
-data/
+# ── Data & model artefacts (not committed, like EPGNN) ──────────
+metadata_clean.csv
+modalities.hdf5
+extinction_model.pth
 outputs/
 checkpoints/
 predictions/

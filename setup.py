@@ -26,7 +26,7 @@ setup(
     long_description_content_type="text/markdown",
     author="Team B - Science/Medical Applications",
     license="MIT",
-    url="https://github.com/team-b/species-extinction-predictor",
+    url="https://github.com/Arya-Addagarla/SEP",
     python_requires=">=3.9",
     packages=find_packages(where="src"),
     package_dir={"": "src"},

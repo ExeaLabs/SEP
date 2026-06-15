@@ -1,0 +1,64 @@
+# Species Extinction Risk Predictor - Default Configuration
+# =========================================================
+# Reference config (mirrors EPGNN's configs/default.yaml pattern).
+# Values can be passed via main.py CLI arguments.
+
+project:
+  name: "species-extinction-predictor"
+  version: "0.1.0"
+  description: "Multi-modal deep learning for IUCN extinction risk classification"
+  seed: 42
+
+# Data configuration (Kaggle-based, no Google Earth Engine)
+data:
+  metadata_path: "metadata_clean.csv"
+  hdf5_path: "modalities.hdf5"
+  kaggle_datasets:
+    iucn: "sarcasmos/world-species-extinction-and-threat-assessment-iucn"
+    gbif: "anjalibarge2511/gbif-species-occurrence-records"
+  batch_size: 16
+  num_workers: 4
+  test_size: 0.2
+
+# IUCN risk categories (target classes)
+classes:
+  names: ["LC", "NT", "VU", "EN", "CR"]
+  num_classes: 5
+
+# Model architecture
+model:
+  satellite_feature_dim: 512
+  climate_input_dim: 12
+  climate_hidden_dim: 256
+  climate_num_layers: 2
+  climate_dropout: 0.3
+  num_classes: 5
+  pretrained_backbone: true
+  freeze_backbone: true
+
+# Training configuration
+training:
+  epochs: 50
+  batch_size: 16
+  learning_rate: 0.0001
+  weight_decay: 0.0001
+  focal_gamma: 2.0
+  grad_clip: 1.0
+  early_stopping_patience: 10
+
+# Evaluation metrics
+evaluation:
+  metrics: ["macro_f1", "auc_roc", "confusion_matrix"]
+  primary_metric: "macro_f1"
+
+# Checkpointing
+checkpointing:
+  model_path: "extinction_model.pth"
+  save_best: true
+
+# Logging
+logging:
+  level: "INFO"
+  wandb:
+    enabled: false
+    project: "species-extinction-predictor"
