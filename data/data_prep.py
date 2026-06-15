@@ -172,7 +172,7 @@ def prepare_datasets(
     iucn = load_iucn_data(iucn_csv)
     gbif = load_gbif_data(gbif_csv)
 
-    merged = iucn.merge(gbif, on="scientific_name", how="inner")
+    merged = iucn.merge(gbif, on="scientific_name", how="outer")
     merged["label"] = merged["iucn_category"].map(IUCN_TO_LABEL)
     merged = merged.dropna(subset=["label"])
     merged["species_id"] = [f"sp_{i}" for i in range(len(merged))]
