@@ -37,9 +37,17 @@ Datasets are not committed to the repo. Download them via the Kaggle API:
 | GBIF Species Occurrence Records | `anjalibarge2511/gbif-species-occurrence-records` | Species coordinates |
 
 ```bash
-# Requires ~/.kaggle/kaggle.json API credentials
+# Requires ~/.kaggle/kaggle.json or KAGGLE_API_TOKEN / ~/.kaggle/access_token
 bash scripts/download_datasets.sh
-python data/data_prep.py   # merge CSVs → metadata_clean.csv + modalities.hdf5
+python -m data.data_prep   # merge CSVs → metadata_clean.csv + modalities.hdf5
+
+Note: the GBIF Kaggle export is a tab-delimited species-summary file with no
+per-record coordinates. data_prep.py auto-detects the delimiter and, when no
+latitude/longitude columns exist, derives deterministic pseudo-coordinates
+from each species name so the pipeline still runs end-to-end on real species
+and real IUCN labels. Console output reports the IUCN/GBIF match count after
+merging — verified working: ~9,150 species matched out of ~137k IUCN /
+~10k GBIF entries on the current Kaggle snapshot.
 ```
 
 ### How data is organized
