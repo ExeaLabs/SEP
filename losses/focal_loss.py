@@ -117,10 +117,15 @@ class FocalLoss(nn.Module):
                 f"targets={targets.size(0)}"
             )
 
+        # Compute in float32 regardless of autocast context to avoid
+        # fp16 underflow in log_softmax / (1-p)^gamma blowing up to NaN.
+        logits = logits.float()
+
         num_classes = logits.size(1)
 
         # Compute softmax probabilities
         probs = F.softmax(logits, dim=-1)  # (B, C)
+        probs = probs.clamp(min=1e-6, max=1.0 - 1e-6)
 
         # Apply label smoothing to targets
         if self.label_smoothing > 0.0:
@@ -139,8 +144,9 @@ class FocalLoss(nn.Module):
                 smooth_targets = torch.zeros_like(probs)
                 smooth_targets.scatter_(1, targets.unsqueeze(1), 1.0)
 
-        # Log probabilities (numerically stable via log_softmax)
-        log_probs = F.log_softmax(logits, dim=-1)  # (B, C)
+        # Log probabilities, computed from the same clamped probs used
+        # above so focal_weight and log_probs stay numerically consistent.
+        log_probs = torch.log(probs)  # (B, C)
 
         # Focal modulating factor: (1 - p_t)^gamma
         # For multi-class, compute per-class focal weight
@@ -185,17 +191,11 @@ def test_focal_loss() -> None:
     targets = torch.randint(0, num_classes, (batch_size,))
     alpha = torch.tensor([0.5, 1.0, 1.5, 2.0, 2.5])
 
-    # -------------------------------------------------------------------
-    # Test 1: Scalar output with reduction='mean'
-    # -------------------------------------------------------------------
     criterion = FocalLoss(gamma=2.0, alpha=alpha, reduction="mean")
     loss = criterion(logits, targets)
     assert loss.ndim == 0, f"Expected scalar, got shape {loss.shape}"
     print(f"✓ Test 1 passed: scalar loss = {loss.item():.6f}")
 
-    # -------------------------------------------------------------------
-    # Test 2: Per-sample output with reduction='none'
-    # -------------------------------------------------------------------
     criterion_none = FocalLoss(gamma=2.0, alpha=alpha, reduction="none")
     loss_none = criterion_none(logits, targets)
     assert loss_none.shape == (batch_size,), (
@@ -203,23 +203,14 @@ def test_focal_loss() -> None:
     )
     print(f"✓ Test 2 passed: per-sample loss shape = {loss_none.shape}")
 
-    # -------------------------------------------------------------------
-    # Test 3: Gradient flow
-    # -------------------------------------------------------------------
     loss.backward()
     assert logits.grad is not None, "Gradients did not flow to logits"
     assert not torch.all(logits.grad == 0), "All gradients are zero"
     print(f"✓ Test 3 passed: gradients flow (grad norm = {logits.grad.norm():.6f})")
 
-    # -------------------------------------------------------------------
-    # Test 4: Non-negative loss
-    # -------------------------------------------------------------------
     assert (loss_none >= 0).all(), "Focal loss should be non-negative"
     print("✓ Test 4 passed: all per-sample losses are non-negative")
 
-    # -------------------------------------------------------------------
-    # Test 5: gamma=0 approximates standard CE (no alpha, no smoothing)
-    # -------------------------------------------------------------------
     logits_ce = torch.randn(batch_size, num_classes)
     targets_ce = torch.randint(0, num_classes, (batch_size,))
     focal_g0 = FocalLoss(gamma=0.0, alpha=None, reduction="mean")
@@ -230,9 +221,6 @@ def test_focal_loss() -> None:
     assert diff < 1e-5, f"gamma=0 should match CE, diff={diff}"
     print(f"✓ Test 5 passed: gamma=0 matches CE (diff={diff:.2e})")
 
-    # -------------------------------------------------------------------
-    # Test 6: Label smoothing
-    # -------------------------------------------------------------------
     criterion_smooth = FocalLoss(
         gamma=2.0, alpha=alpha, reduction="mean", label_smoothing=0.1
     )
@@ -241,9 +229,6 @@ def test_focal_loss() -> None:
     assert loss_smooth.item() >= 0, "Label-smoothed loss should be non-negative"
     print(f"✓ Test 6 passed: label smoothing loss = {loss_smooth.item():.6f}")
 
-    # -------------------------------------------------------------------
-    # Test 7: Alpha weighting
-    # -------------------------------------------------------------------
     criterion_no_alpha = FocalLoss(gamma=2.0, alpha=None, reduction="none")
     criterion_with_alpha = FocalLoss(gamma=2.0, alpha=alpha, reduction="none")
     loss_no_a = criterion_no_alpha(logits_ce, targets_ce)

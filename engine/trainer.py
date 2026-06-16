@@ -112,9 +112,18 @@ def train_model(
                 logits, _, _ = model(satellite, climate)
                 loss = criterion(logits, targets)
 
+            if not torch.isfinite(loss):
+                print(f"  Skipping batch: non-finite loss ({loss.item()})")
+                optimizer.zero_grad(set_to_none=True)
+                continue
+
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            if not torch.isfinite(grad_norm):
+                print("  Skipping step: non-finite gradient norm")
+                optimizer.zero_grad(set_to_none=True)
+                continue
             scaler.step(optimizer)
             scaler.update()
 
