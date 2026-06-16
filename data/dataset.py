@@ -66,6 +66,21 @@ class SpeciesExtinctionDataset(Dataset):
         if missing:
             raise ValueError(f"Metadata missing required columns: {missing}")
 
+        with h5py.File(self.hdf5_path, "r") as f:
+            valid_ids = set(f["satellite"].keys()) & set(f["climate"].keys())
+
+        before = len(self.metadata)
+        self.metadata = self.metadata[
+            self.metadata["species_id"].astype(str).isin(valid_ids)
+        ].reset_index(drop=True)
+        dropped = before - len(self.metadata)
+        if dropped:
+            print(
+                f"[SpeciesExtinctionDataset] Warning: dropped {dropped} rows from "
+                f"{metadata_path} with no matching entry in {hdf5_path} "
+                f"(metadata/HDF5 out of sync — re-run data_prep.py to fix at the source)."
+            )
+
         self.labels = self.metadata["label"].astype(int).tolist()
 
     def __len__(self) -> int:
